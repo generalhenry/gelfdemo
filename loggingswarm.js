@@ -29,7 +29,7 @@ ${machineName} logs:
 }
 
 function setupMachine (machineName, swarm) {
-  // create(machineName, swarm);
+  create(machineName, swarm);
   build(['-t',
     ImageName,
     '.'], machineName);
