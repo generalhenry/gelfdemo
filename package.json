@@ -13,6 +13,7 @@
   "dependencies": {
     "docker-events": "0.0.2",
     "dockerode": "^2.2.10",
-    "graygelf": "^1.0.0"
+    "graygelf": "^1.0.0",
+    "left-pad": "^1.0.1"
   }
 }

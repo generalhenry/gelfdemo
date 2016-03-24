@@ -1,0 +1,17 @@
+elasticsearch:
+  image: elasticsearch:latest
+  command: elasticsearch -Des.network.host=0.0.0.0
+  ports:
+    - "9200:9200"
+    - "9300:9300"
+logstash:
+  image: logstash:latest
+  command: logstash -e 'input { gelf { type => docker port => 5000 } } output { elasticsearch { hosts => "192.168.99.120:9200" } }'
+  ports:
+    - "5000:5000/udp"
+kibana:
+  image: kibana
+  ports:
+    - "5601:5601"
+  environment:
+    - ELASTICSEARCH_URL=http://192.168.99.120:9200

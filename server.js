@@ -1,8 +1,10 @@
 var GelfServer = require('graygelf/server');
+var GelfClient = require('graygelf');
 var Docker = require('dockerode');
 var DockerEvents = require('docker-events');
 
 var gelfServer = GelfServer();
+var gelfClient = GelfClient({ host: '192.168.99.120', port: 5000 });
 var docker = new Docker();
 var dockerEvents = new DockerEvents({
   docker: docker
@@ -17,28 +19,17 @@ dockerEvents.on('disconnect', function() {
 });
 
 dockerEvents.on('_message', function(message) {
-  console.log('daemon: ' +
+  var short_message = 'daemon: ' +
     message.Action +
     ' ' +
-    message.Actor.Attributes.name);
+    message.Actor.Attributes.name;
+  gelfClient.info.a(short_message, '', message);
 });
 
 dockerEvents.start();
 
-gelfServer
-  .on('message', function (gelf) {
-    console.log(gelf._container_name + ':' + gelf.short_message);
-  })
-  .listen(12201, function() {
+gelfServer.listen(12201, function() {
     console.log('server started');
-
-    exitOnSignal('SIGINT');
-    exitOnSignal('SIGTERM');
-
-    function exitOnSignal(signal) {
-      process.on(signal, function () {
-        console.log('stopping server...');
-        process.exit();
-      });
-    }
   });
+
+gelfServer.pipe(gelfClient);
