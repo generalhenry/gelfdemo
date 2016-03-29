@@ -2,12 +2,7 @@
   "name": "gelftest",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
-  "scripts": {
-    "create": "docker-machine create --driver virtualbox --engine-opt log-driver=gelf --engine-opt log-opt=\"gelf-address=udp://0.0.0.0:12201\" gelf",
-    "build": "eval $(docker-machine env gelf) && docker build -t gelflogger .",
-    "start": "eval $(docker-machine env gelf) && docker run -p 12201:12201/udp --log-driver=json-file -v /var/run/docker.sock:/var/run/docker.sock gelflogger"
-  },
+  "main": "server.js",
   "author": "",
   "license": "ISC",
   "dependencies": {

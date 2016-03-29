@@ -4,7 +4,7 @@ var Docker = require('dockerode');
 var DockerEvents = require('docker-events');
 
 var gelfServer = GelfServer();
-var gelfClient = GelfClient({ host: '192.168.99.120', port: 5000 });
+var gelfClient = GelfClient({ host: process.env.SWARM_MASTER_IP, port: 5000 });
 var docker = new Docker();
 var dockerEvents = new DockerEvents({
   docker: docker

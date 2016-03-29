@@ -10,26 +10,36 @@ const AgentCount = 2;
 const SwarmToken = run(['swarm', 'create']);
 
 let machineList = [];
+let swarmMasterIP;
 
-// create the master
+/*
+  buisness
+*/
 setupMachine('swarm-master', true);
 
 for (let i = 0; i < AgentCount; i++) {
   setupMachine(`swarm-agent-${leftPad(i, 2, '0')}`, false);
 }
 
+setupElk('swarm-master');
+
+// wait for Java
+exec('sleep', ['10']);
+
 run(['hello-world'], 'swarm-master', true);
 
-for(let machineName of machineList) {
-  console.log(`
-${machineName} logs:
-  `);
-  console.log(logs([`${machineName}/${machineName}-logs`],
-    'swarm-master', true));
-}
+console.log(`kibana: http://${swarmMasterIP}:5601`);
+console.log('eval $(docker-machine env --swarm swarm-master)');
+
+/*
+  /buisness
+*/
 
 function setupMachine (machineName, swarm) {
   create(machineName, swarm);
+  if (machineName === 'swarm-master') {
+    swarmMasterIP = inspect('swarm-master').Driver.IPAddress;
+  }
   build(['-t',
     ImageName,
     '.'], machineName);
@@ -38,9 +48,44 @@ function setupMachine (machineName, swarm) {
     '--log-driver=json-file',
     '--restart=always',
     '-v', '/var/run/docker.sock:/var/run/docker.sock',
+    '-e', `SWARM_MASTER_IP=${swarmMasterIP}`,
     '--name', `${machineName}-logs`,
     ImageName], machineName);
   machineList.push(machineName);
+}
+
+function setupElk (machineName) {
+  run(['-d',
+    '-p', '9200:9200',
+    '-p', '9300:9300',
+    '--restart=always',
+    '--name', `elasticsearch-logs`,
+    'elasticsearch',
+    'elasticsearch', '-Des.network.host=0.0.0.0'], machineName);
+  run(['-d',
+    '-p', '5000:5000/udp',
+    '--restart=always',
+    '--name', `logstash-logs`,
+    'logstash',
+    'logstash', '-e',
+    '--add-host', `swarmhost:${swarmMasterIP}`,
+    `input {
+      gelf {
+        type => docker
+        port => 5000
+      }
+    }
+    output {
+      elasticsearch {
+        hosts => "swarmhost:9200"
+      }
+    }`], machineName);
+  run(['-d',
+    '-p', '5601:5601',
+    '--restart=always',
+    '-e', `ELASTICSEARCH_URL=http://swarmhost:9200`,
+    '--name', `kibana-logs`,
+    'kibana'], machineName);
 }
 
 function env (machineName, swarm) {
@@ -56,7 +101,6 @@ function env (machineName, swarm) {
 
 function run (args, machineName, swarm) {
   args = ['run'].concat(args);
-  // handle swarm
   return exec('docker', args, {
     env: env(machineName, swarm)
   }).toString();
@@ -86,7 +130,16 @@ function create (machineName, master) {
     '--engine-opt', 'log-driver=gelf',
     '--engine-opt', `log-opt="gelf-address=udp://0.0.0.0:${LoggerPort}"`,
     '--swarm',
-    '--swarm-discovery', `token://${SwarmToken}`];
+    '--swarm-discovery', `token://${SwarmToken}`
+  ];
+  if (Driver === 'amazonec2') {
+    args = args.concat([
+      '--amazonec2-region', process.env.EC2_REGION,
+      '--amazonec2-vpc-id', process.env.EC2_VPC,
+      '--amazonec2-subnet-id', process.env.EC2_SUBNET,
+      '--amazonec2-instance-type', 't2.large'
+    ]);
+  }
   if (master) {
     args.push('--swarm-master');
   }
