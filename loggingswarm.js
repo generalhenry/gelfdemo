@@ -28,7 +28,8 @@ exec('sleep', ['10']);
 
 run(['hello-world'], 'swarm-master', true);
 
-console.log(`kibana: http://${swarmMasterIP}:5601`)
+console.log(`kibana: http://${swarmMasterIP}:5601`);
+console.log('eval $(docker-machine env --swarm swarm-master)');
 
 /*
   /buisness
@@ -67,6 +68,7 @@ function setupElk (machineName) {
     '--name', `logstash-logs`,
     'logstash',
     'logstash', '-e',
+    '--add-host', `swarmhost:${swarmMasterIP}`,
     `input {
       gelf {
         type => docker
@@ -75,13 +77,13 @@ function setupElk (machineName) {
     }
     output {
       elasticsearch {
-        hosts => "${swarmMasterIP}:9200"
+        hosts => "swarmhost:9200"
       }
     }`], machineName);
   run(['-d',
     '-p', '5601:5601',
     '--restart=always',
-    '-e', `ELASTICSEARCH_URL=http://${swarmMasterIP}:9200`,
+    '-e', `ELASTICSEARCH_URL=http://swarmhost:9200`,
     '--name', `kibana-logs`,
     'kibana'], machineName);
 }
@@ -134,7 +136,8 @@ function create (machineName, master) {
     args = args.concat([
       '--amazonec2-region', process.env.EC2_REGION,
       '--amazonec2-vpc-id', process.env.EC2_VPC,
-      '--amazonec2-subnet-id', process.env.EC2_SUBNET
+      '--amazonec2-subnet-id', process.env.EC2_SUBNET,
+      '--amazonec2-instance-type', 't2.large'
     ]);
   }
   if (master) {
