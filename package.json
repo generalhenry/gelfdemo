@@ -1,14 +1,21 @@
 {
-  "name": "gelftest",
+  "name": "gelfForwarder",
   "version": "1.0.0",
-  "description": "",
+  "description": "Docker logging using gelf for container logging and the docker event api for logging the daemon events",
   "main": "server.js",
-  "author": "",
+  "author": "Henry Allen-Tilford<htilford@gmail.com>",
   "license": "ISC",
   "dependencies": {
     "docker-events": "0.0.2",
     "dockerode": "^2.2.10",
-    "graygelf": "^1.0.0",
-    "left-pad": "^1.0.1"
+    "graygelf": "^1.0.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "docker-mock": "^5.4.0",
+    "mocha": "^2.4.5"
   }
 }
